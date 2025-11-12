@@ -24,13 +24,9 @@ router.get('/current-class', async (req, res) => {
  * GET /schedules
  * Finds and returns all class schedules for the authenticated teacher for the current day.
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req, res) => { // No longer requires teacherId
   try {
-    const { teacherId } = req.query;
-    if (!teacherId) {
-      return res.status(400).json({ error: 'teacherId query parameter is required.' });
-    }
-    const schedules = await Classroom.findSchedulesForTeacherByDay(teacherId);
+    const schedules = await Classroom.findAllSchedules();
     res.json(schedules);
   } catch (error) {
     console.error('Error fetching schedules:', error);

@@ -74,7 +74,33 @@ const findSchedulesForTeacherByDay = async (teacherId) => {
   return result.rows;
 };
 
+/**
+ * Finds all scheduled classes from the database.
+ * @returns {Promise<Array>} A promise that resolves to an array of all schedule objects.
+ */
+const findAllSchedules = async () => {
+  const query = {
+    text: `
+      SELECT
+        s.schedule_id,
+        sec.section_name AS class_name,
+        sub.subject_name,
+        s.day_of_week,
+        TO_CHAR(s.start_time, 'HH24:MI') AS start_time,
+        TO_CHAR(s.end_time, 'HH24:MI') AS end_time,
+        CURRENT_DATE AS date
+      FROM schedule s
+      JOIN sections sec ON s.section_id = sec.section_id
+      JOIN subjects sub ON s.subject_id = sub.subject_id
+      ORDER BY s.schedule_id;
+    `,
+  };
+  const result = await db.query(query);
+  return result.rows;
+};
+
 module.exports = {
   findCurrentClassForTeacher,
   findSchedulesForTeacherByDay,
+  findAllSchedules,
 };
