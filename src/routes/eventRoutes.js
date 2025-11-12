@@ -5,30 +5,12 @@ const Classroom = require('../models/classroom');
 const db = require('../config/db');
 require('dotenv').config();
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (token == null) {
-    return res.sendStatus(401);
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.sendStatus(403);
-    }
-    if (user.role !== 'teacher') {
-        return res.status(403).json({ error: 'Access forbidden: Teacher role required' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-
-router.get('/current-class', authenticateToken, async (req, res) => {
+router.get('/current-class', async (req, res) => {
   try {
-    const teacherId = req.user.id;
+    const { teacherId } = req.query;
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId query parameter is required.' });
+    }
     const currentClass = await Classroom.findCurrentClassForTeacher(teacherId);
     
     currentClass ? res.json(currentClass) : res.status(404).json({ message: 'No active class found at the moment.' });
@@ -42,9 +24,12 @@ router.get('/current-class', authenticateToken, async (req, res) => {
  * GET /schedules
  * Finds and returns all class schedules for the authenticated teacher for the current day.
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const teacherId = req.user.id;
+    const { teacherId } = req.query;
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId query parameter is required.' });
+    }
     const schedules = await Classroom.findSchedulesForTeacherByDay(teacherId);
     res.json(schedules);
   } catch (error) {
@@ -53,7 +38,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/bulk-attendance', authenticateToken, async (req, res) => {
+router.post('/bulk-attendance', async (req, res) => {
   const { schedule_id, attendance_data } = req.body;
 
   if (!schedule_id || !attendance_data || !Array.isArray(attendance_data)) {
