@@ -143,5 +143,5 @@ INSERT INTO schedule (section_id, subject_id, teacher_id, classroom_id, day_of_w
     (SELECT subject_id FROM subjects WHERE subject_name = 'Computer Science'),
     (SELECT person_id FROM persons WHERE name = 'Mr. Sam'),
     (SELECT classroom_id FROM classrooms WHERE room_number = 'CR-101'),
-    'Monday', '09:00:00', '10:00:00'
+    'Monday', '01:00:00', '23:00:00'
 );
