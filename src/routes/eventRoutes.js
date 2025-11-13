@@ -5,13 +5,46 @@ const Classroom = require('../models/classroom');
 const db = require('../config/db');
 require('dotenv').config();
 
-router.get('/current-class', async (req, res) => {
+const verifyToken = (req, res, next) => {
+  const bearerHeader = req.headers['authorization'];
+  if (typeof bearerHeader !== 'undefined') {
+    const bearerToken = bearerHeader.split(' ')[1];
+    jwt.verify(bearerToken, process.env.JWT_SECRET, (err, authData) => {
+      if (err) return res.sendStatus(403); // Forbidden
+      req.user = authData; // Set user data from token
+      next();
+    });
+  } else {
+    res.sendStatus(401); // Unauthorized
+  }
+};
+
+router.get('/current-class', verifyToken, async (req, res) => {
   try {
-    const { teacherId } = req.query;
-    if (!teacherId) {
-      return res.status(400).json({ error: 'teacherId query parameter is required.' });
-    }
-    const currentClass = await Classroom.findCurrentClassForTeacher(teacherId);
+    const teacherId = req.user.id; // Get teacher ID securely from the token
+    // The Classroom.findCurrentClassForTeacher model function is not provided.
+    // The logic is implemented here directly to handle time zones correctly.
+    const timeZone = 'Asia/Kolkata'; // IST time zone for India
+
+    const query = `
+      SELECT 
+        s.schedule_id,
+        sub.subject_name,
+        sec.section_name,
+        cr.room_number,
+        s.day_of_week,
+        s.start_time,
+        s.end_time
+      FROM schedule s
+      JOIN subjects sub ON s.subject_id = sub.subject_id
+      JOIN sections sec ON s.section_id = sec.section_id
+      JOIN classrooms cr ON s.classroom_id = cr.classroom_id
+      WHERE s.teacher_id = $1
+        AND s.day_of_week = to_char(NOW() AT TIME ZONE $2, 'FMDay')
+        AND NOW() AT TIME ZONE $2 BETWEEN s.start_time AND s.end_time;
+    `;
+    const { rows } = await db.query(query, [teacherId, timeZone]);
+    const currentClass = rows[0];
     
     currentClass ? res.json(currentClass) : res.status(404).json({ message: 'No active class found at the moment.' });
   } catch (error) {
