@@ -145,3 +145,9 @@ INSERT INTO schedule (section_id, subject_id, teacher_id, classroom_id, day_of_w
     (SELECT classroom_id FROM classrooms WHERE room_number = 'CR-101'),
     'Monday', '01:00:00', '23:00:00'
 );
+
+-- Map students to the 'S33' section
+INSERT INTO student_sections (person_id, section_id) VALUES
+((SELECT person_id FROM persons WHERE name = 'Abhijeet Raj'), (SELECT section_id FROM sections WHERE section_name = 'S33')),
+((SELECT person_id FROM persons WHERE name = 'Ayan Roy'), (SELECT section_id FROM sections WHERE section_name = 'S33')),
+((SELECT person_id FROM persons WHERE name = 'Pushkar Roy'), (SELECT section_id FROM sections WHERE section_name = 'S33'));
