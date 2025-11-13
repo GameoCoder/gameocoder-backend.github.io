@@ -51,30 +51,38 @@ router.post('/bulk-attendance', async (req, res) => {
     let failed = 0;
 
     for (const record of attendance_data) {
-      const { rfid_tag, timestamp } = record;
-
-      // Check if attendance for this RFID tag and schedule already exists
-      const duplicateCheck = await client.query('SELECT attendance_id FROM attendance WHERE schedule_id = $1 AND rfid_tag = $2', [schedule_id, rfid_tag]);
-
-      if (duplicateCheck.rows.length > 0) {
-        duplicates++;
-        results.push({ rfid_tag, success: false, message: 'Duplicate attendance record', isDuplicate: true });
+      const { rfid_tag, timestamp } = record; // Ensure record is not null/undefined
+      if (!rfid_tag || !timestamp) {
+        failed++;
+        // Push a result for records that are malformed
+        results.push({ rfid_tag: rfid_tag || 'unknown', success: false, message: 'Malformed record in payload', isDuplicate: false });
         continue;
       }
+      
+      try {
+        const duplicateCheck = await client.query('SELECT attendance_id FROM attendance WHERE schedule_id = $1 AND rfid_tag = $2', [schedule_id, rfid_tag]);
 
-      // Insert new attendance record
-      const insertResult = await client.query(
-        'INSERT INTO attendance (schedule_id, rfid_tag, timestamp, status) VALUES ($1, $2, $3, $4) RETURNING rfid_tag',
-        [schedule_id, rfid_tag, timestamp, 'present']
-      );
+        if (duplicateCheck.rows.length > 0) {
+          duplicates++;
+          results.push({ rfid_tag, success: false, message: 'Duplicate attendance record', isDuplicate: true });
+          continue;
+        }
 
-      if (insertResult.rows.length > 0) {
-        successful++;
-        const person = await client.query('SELECT name, (SELECT section_name FROM sections WHERE section_id = student_sections.section_id) as section FROM persons JOIN student_sections ON persons.person_id = student_sections.person_id WHERE rfid_tag = $1', [rfid_tag]);
-        results.push({ rfid_tag, success: true, message: 'Present', student: person.rows[0] || null, isDuplicate: false });
-      } else {
+        // Insert new attendance record
+        const insertResult = await client.query(
+          'INSERT INTO attendance (schedule_id, rfid_tag, timestamp, status) VALUES ($1, $2, $3, $4) RETURNING rfid_tag',
+          [schedule_id, rfid_tag, timestamp, 'present']
+        );
+
+        if (insertResult.rows.length > 0) {
+          successful++;
+          const person = await client.query('SELECT name, (SELECT section_name FROM sections WHERE section_id = student_sections.section_id) as section FROM persons JOIN student_sections ON persons.person_id = student_sections.person_id WHERE rfid_tag = $1', [rfid_tag]);
+          results.push({ rfid_tag, success: true, message: 'Present', student: person.rows[0] || null, isDuplicate: false });
+        }
+      } catch (err) {
         failed++;
-        results.push({ rfid_tag, success: false, message: 'Failed to record attendance', isDuplicate: false });
+        results.push({ rfid_tag, success: false, message: 'Failed to record attendance', isDuplicate: false, student: null });
+        console.error(`Failed to process RFID ${rfid_tag}:`, err.message);
       }
     }
 
