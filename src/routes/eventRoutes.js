@@ -19,6 +19,15 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// router.get('/current-class-no-auth', async (req,res) => {
+//   try {
+//     const { teacherId } = req.query;
+//     if(!teacherId) {
+//       return res.status(400).json({ error: "teacherId query parameter is required."});
+//     }
+//   }
+// });
+
 router.get('/current-class', verifyToken, async (req, res) => {
   try {
     const teacherId = req.user.id; // Get teacher ID securely from the token
@@ -41,7 +50,7 @@ router.get('/current-class', verifyToken, async (req, res) => {
       JOIN classrooms cr ON s.classroom_id = cr.classroom_id
       WHERE s.teacher_id = $1
         AND s.day_of_week = to_char(NOW() AT TIME ZONE $2, 'FMDay')
-        AND NOW() AT TIME ZONE $2 BETWEEN s.start_time AND s.end_time;
+        AND (NOW() AT TIME ZONE $2)::time BETWEEN s.start_time AND s.end_time;
     `;
     const { rows } = await db.query(query, [teacherId, timeZone]);
     const currentClass = rows[0];
