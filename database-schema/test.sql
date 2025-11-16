@@ -130,23 +130,18 @@ INSERT INTO classrooms (room_number) VALUES
 ('CR-102'),
 ('LAB-201');
 
--- Insert a subject
 INSERT INTO subjects (subject_name) VALUES
 ('Computer Science');
 
--- Schedule a class for Mr. Sam (person_id=5) for section S33 (section_id=1) in CR-101 (classroom_id=1)
--- To test this, you'll need to make the API call on a Monday between 09:00 and 10:00 local time.
--- You can adjust the day_of_week and times to match when you are testing.
 INSERT INTO schedule (section_id, subject_id, teacher_id, classroom_id, day_of_week, start_time, end_time) VALUES
 (
     (SELECT section_id FROM sections WHERE section_name = 'S33'),
     (SELECT subject_id FROM subjects WHERE subject_name = 'Computer Science'),
     (SELECT person_id FROM persons WHERE name = 'Mr. Sam'),
     (SELECT classroom_id FROM classrooms WHERE room_number = 'CR-101'),
-    'Monday', '01:00:00', '23:00:00'
+    'Sunday', '01:00:00', '23:00:00'
 );
 
--- Map students to the 'S33' section
 INSERT INTO student_sections (person_id, section_id) VALUES
 ((SELECT person_id FROM persons WHERE name = 'Abhijeet Raj'), (SELECT section_id FROM sections WHERE section_name = 'S33')),
 ((SELECT person_id FROM persons WHERE name = 'Ayan Roy'), (SELECT section_id FROM sections WHERE section_name = 'S33')),
